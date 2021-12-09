@@ -223,7 +223,7 @@ void drawUI(SDL_Renderer* renderer)
 int main(int argc, char* argv[]){
 
   char *ip = "127.0.0.1";
-  int port = 5566;
+  int port = 40261;
 
   int sock;
   struct sockaddr_in addr;
