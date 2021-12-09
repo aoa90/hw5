@@ -16,5 +16,8 @@ runclient: $(OUTPUT)
 client: client.o
 	gcc $(CFLAGS) -o $@ $^ $(LFLAGS)
 
+server: server.o
+	gcc $(CFLAGS) -o $@ $^ $(LFLAGS)
+
 clean:
 	rm -f $(OUTPUT) *.o
