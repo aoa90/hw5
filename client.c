@@ -222,30 +222,34 @@ void drawUI(SDL_Renderer* renderer)
 }
 int main(int argc, char* argv[]){
 
-  char *ip = "127.0.0.1";
-  int port = 40261;
+    //handle arguememts 
 
-  int sock;
-  struct sockaddr_in addr;
-  socklen_t addr_size;
-  char buffer[1024];
-  int n;
+    char *ip = "127.0.0.1";
+    int port = 40261;
 
-  sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0){
+    int sock;
+    struct sockaddr_in addr;
+    socklen_t addr_size;
+    char buffer[1024];
+    int n;
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0){
     perror("[-]Socket error");
-    exit(1);
-  }
-  printf("[+]TCP server socket created.\n");
+        exit(1);
+    }
+    printf("[+]TCP server socket created.\n");
 
-  memset(&addr, '\0', sizeof(addr));
-  addr.sin_family = AF_INET;
-  addr.sin_port = port;
-  addr.sin_addr.s_addr = inet_addr(ip);
+    memset(&addr, '\0', sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = port;
+    addr.sin_addr.s_addr = inet_addr(ip);
 
-  connect(sock, (struct sockaddr*)&addr, sizeof(addr));
-  printf("Connected to the server.\n");
-  srand(time(NULL));
+    connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+    printf("Connected to the server.\n");
+
+    
+    srand(time(NULL));
 
     level = 1;
 
@@ -253,8 +257,8 @@ int main(int argc, char* argv[]){
 
     font = TTF_OpenFont("resources/Burbank-Big-Condensed-Bold-Font.otf", HEADER_HEIGHT);
     if (font == NULL) {
-        fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
-        exit(EXIT_FAILURE);
+    fprintf(stderr, "Error loading font: %s\n", TTF_GetError());
+    exit(EXIT_FAILURE);
     }
 
     playerPosition.x = playerPosition.y = GRIDSIZE / 2;
@@ -263,17 +267,17 @@ int main(int argc, char* argv[]){
     SDL_Window* window = SDL_CreateWindow("Client", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
 
     if (window == NULL) {
-        fprintf(stderr, "Error creating app window: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
+    fprintf(stderr, "Error creating app window: %s\n", SDL_GetError());
+    exit(EXIT_FAILURE);
     }
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 
-	if (renderer == NULL)
-	{
-		fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
-	}
+    if (renderer == NULL)
+    {
+    fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
+    exit(EXIT_FAILURE);
+    }
 
     SDL_Texture *grassTexture = IMG_LoadTexture(renderer, "resources/grass.png");
     SDL_Texture *tomatoTexture = IMG_LoadTexture(renderer, "resources/tomato.png");
@@ -281,17 +285,18 @@ int main(int argc, char* argv[]){
 
     // main game loop
     while (!shouldExit) {
-        SDL_SetRenderDrawColor(renderer, 0, 105, 6, 255);
-        SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 0, 105, 6, 255);
+    SDL_RenderClear(renderer);
 
-        processInputs();
+    processInputs();
+    //recieve from server
 
-        drawGrid(renderer, grassTexture, tomatoTexture, playerTexture);
-        drawUI(renderer);
+    drawGrid(renderer, grassTexture, tomatoTexture, playerTexture);
+    drawUI(renderer);
 
-        SDL_RenderPresent(renderer);
+    SDL_RenderPresent(renderer);
 
-        SDL_Delay(16); // 16 ms delay to limit display to 60 fps
+    SDL_Delay(16); // 16 ms delay to limit display to 60 fps
     }
 
     // clean up everything
@@ -307,9 +312,10 @@ int main(int argc, char* argv[]){
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-  close(sock);
-  printf("Disconnected from the server.\n");
 
-  return 0;
+    close(sock);
+    printf("Disconnected from the server.\n");
+
+    return 0;
 
 }
