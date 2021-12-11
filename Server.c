@@ -34,10 +34,12 @@ int main(){
   }
   printf("[+]Bind to the port number: %d\n", port);
 
+  
   listen(server_sock, 5);
   printf("Listening...\n");
-
+  
   while(1){
+  
     addr_size = sizeof(client_addr);
     client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &addr_size);
     printf("[+]Client connected.\n");

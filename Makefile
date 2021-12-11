@@ -16,11 +16,9 @@ runclient: $(OUTPUT)
 client: client.o
 	gcc $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-server: server.o
-	gcc $(CFLAGS) -o $@ $^ $(LFLAGS) server
+server: Server.c
+	gcc $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-server.o: server.c
-	gcc -g -Wall -Wvla -fsanitize=address -c server.c
 
 clean:
 	rm -f $(OUTPUT) *.o
