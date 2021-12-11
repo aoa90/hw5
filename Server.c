@@ -8,18 +8,22 @@
 
 void* processClient(void *client_sock){
 
+  int curr_sock = *(int *) client_sock; 
+  free(client_sock);
+
+  char buffer[1024];
   bzero(buffer, 1024);
-  recv(client_sock, buffer, sizeof(buffer), 0);
+  recv(curr_sock, buffer, sizeof(buffer), 0);
   printf("Client: %s\n", buffer);
 
   bzero(buffer, 1024);
   strcpy(buffer, "HI, THIS IS SERVER. HAVE A NICE DAY!!!");
   printf("Server: %s\n", buffer);
-  send(client_sock, buffer, strlen(buffer), 0);
+  send(curr_sock, buffer, strlen(buffer), 0);
 
-  close(client_sock);
+  close(curr_sock);
   printf("[+]Client disconnected.\n\n");
-  
+
 }
 
 int main(){
