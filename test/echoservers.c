@@ -25,6 +25,7 @@ typedef struct { /* represents a pool of connected descriptors */ //line:conc:ec
     int clientfd[FD_SETSIZE];    /* set of active descriptors */
     rio_t clientrio[FD_SETSIZE]; /* set of active read buffers */
 } pool; //line:conc:echoservers:endpool
+
 /* $end echoserversmain */
 void init_pool(int listenfd, pool *p);
 void add_client(int connfd, pool *p);
@@ -52,6 +53,8 @@ Position playerPosition;
 int score;
 int level;
 int numTomatoes;
+//sem_t mutex;
+
 
 double rand01()
 {
@@ -90,12 +93,24 @@ void initGrid()
     }
 }
 
+///pool pool;//made global so thread can access
+//static pool pool;
+void *thread(void *vargp){
+	pool* conn = (pool *)vargp;
+	//pthread_detach(pthread_self());
+	initGrid();
+	while(1){ 
+		//do whatever for client, so sending recieve and what not
+		check_clients(conn); //line:conc:echoservers:checkclients
+	}
+}
+
 int main(int argc, char **argv)
 {
-    int listenfd, connfd, port; 
+    int listenfd, connfd, port, *connfdp; 
     socklen_t clientlen = sizeof(struct sockaddr_in);
     struct sockaddr_in clientaddr;
-    static pool pool; 
+   static pool pool;
 
     if (argc != 2) {
 	fprintf(stderr, "usage: %s <port>\n", argv[0]);
@@ -103,24 +118,34 @@ int main(int argc, char **argv)
     }
     port = atoi(argv[1]);
     //grid[playerPosition.x][playerPosition.y] == 'P';
-    initGrid();
+    //initGrid();
+    //Sem_init(&mutex, 0, 1);//
 
     listenfd = Open_listenfd(port);
     init_pool(listenfd, &pool); //line:conc:echoservers:initpool
-    while (1) {
-	/* Wait for listening/connected descriptor(s) to become ready */
-	pool.ready_set = pool.read_set;
-	pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, NULL);
+    pthread_t tid; 
+    for(int i = 0; i < 5; i++){
+    	 //Pthread_create(&tid, NULL, thread, i);
+	    while (1) {
+		/* Wait for listening/connected descriptor(s) to become ready */
+		pool.ready_set = pool.read_set;
+		pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, NULL);
 
-	/* If listening descriptor ready, add new client to pool */
-	if (FD_ISSET(listenfd, &pool.ready_set)) { //line:conc:echoservers:listenfdready
-	    connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:conc:echoservers:accept
-	    add_client(connfd, &pool); //line:conc:echoservers:addclient
-	}
-	
-	/* Echo a text line from each ready connected descriptor */ 
-	check_clients(&pool); //line:conc:echoservers:checkclients
+		/* If listening descriptor ready, add new client to pool */
+		if (FD_ISSET(listenfd, &pool.ready_set)) { //line:conc:echoservers:listenfdready
+		    connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:conc:echoservers:accept
+		    connfdp = Malloc(sizeof(int));
+		    *connfdp = connfd;
+		    add_client(connfd, &pool); //line:conc:echoservers:addclient
+		    Pthread_create(&tid, NULL, thread, &pool);
+		}
+		
+		
+		/* Echo a text line from each ready connected descriptor */ 
+		//check_clients(&pool); //line:conc:echoservers:checkclients
+	    }
     }
+     pthread_exit(NULL); //close thread here 
 }
 /* $end echoserversmain */
 
@@ -130,9 +155,9 @@ void init_pool(int listenfd, pool *p)
     /* Initially, there are no connected descriptors */
     int i;
     p->maxi = -1;                   //line:conc:echoservers:beginempty
-    for (i=0; i< FD_SETSIZE; i++)  
+    for (i=0; i< FD_SETSIZE; i++)  {
 	p->clientfd[i] = -1;        //line:conc:echoservers:endempty
-
+	}
     /* Initially, listenfd is only member of select read set */
     p->maxfd = listenfd;            //line:conc:echoservers:begininit
     FD_ZERO(&p->read_set);
@@ -156,10 +181,10 @@ void add_client(int connfd, pool *p)
 
 	    /* Update max descriptor and pool highwater mark */
 	    if (connfd > p->maxfd) //line:conc:echoservers:beginmaxfd
-		p->maxfd = connfd; //line:conc:echoservers:endmaxfd
+			p->maxfd = connfd; //line:conc:echoservers:endmaxfd
 	    if (i > p->maxi)       //line:conc:echoservers:beginmaxi
-		p->maxi = i;       //line:conc:echoservers:endmaxi
-	    break;
+			p->maxi = i;       //line:conc:echoservers:endmaxi
+	    	break;
 	}
     if (i == FD_SETSIZE) /* Couldn't find an empty slot */
 	app_error("add_client error: Too many clients");
@@ -174,8 +199,8 @@ void check_clients(pool *p)
     rio_t rio;
 
     for (i = 0; (i <= p->maxi) && (p->nready > 0); i++) {
-	connfd = p->clientfd[i];
-	rio = p->clientrio[i];
+		connfd = p->clientfd[i];
+		rio = p->clientrio[i];
 
 	/* If the descriptor is ready, echo a text line from it */
 	if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set))) { 
@@ -260,4 +285,3 @@ void checkMovement(char move){
 		printf("The x is: %d and the y is %d\n",playerPosition.x,playerPosition.y);
 	}
 }
-
