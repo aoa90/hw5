@@ -187,7 +187,7 @@ void check_clients(pool *p)
 
 		Rio_writen(connfd, buf, n); //line:conc:echoservers:endecho
 		checkMovement(buf[0]);
-		printf("%s\n",buf);
+		printf("score is : %d\n",score);
 	for (int i = GRIDSIZE-1; i >=0; i--) {
         	for (int j = 0; j < GRIDSIZE; j++){
                 	printf("%c",grid[j][i]);
@@ -224,18 +224,19 @@ void moveTo(int x, int y)
     grid[playerPosition.x][playerPosition.y]='G';
     playerPosition.x = x;
     playerPosition.y = y;   
-    grid[playerPosition.x][playerPosition.y]='P';
-    if (grid[x][y] == TILE_TOMATO) {
-        grid[x][y] = TILE_GRASS;
+ //   grid[playerPosition.x][playerPosition.y]='P';
+    printf("%c\n", grid[x][y]);
+    if (grid[x][y] == 'T') {
+        grid[x][y] = 'G';
         score++;
         numTomatoes--;
         if (numTomatoes == 0) {
             level++;
             initGrid();
         }
-    
+    }     
+grid[playerPosition.x][playerPosition.y]='P';
 
-}
 }
 void checkMovement(char move){
 	if(move=='w'){
