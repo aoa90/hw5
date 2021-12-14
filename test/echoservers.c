@@ -29,9 +29,9 @@ typedef struct { /* represents a pool of connected descriptors */ //line:conc:ec
 /* $end echoserversmain */
 void init_pool(int listenfd, pool *p);
 void add_client(int connfd, pool *p);
-void check_clients(pool *p);
+void check_clients(pool *p, Position newPos);
 void moveTo(int x, int y);
-void checkMovement(char move);
+void checkMovement(char move, Position playerPosition);
 /* $begin echoserversmain */
 
 int byte_cnt = 0; /* counts total bytes received by server */
@@ -49,7 +49,7 @@ typedef enum
 
 TILETYPE grid[GRIDSIZE][GRIDSIZE];
 
-Position playerPosition;
+//Position playerPosition;
 int score;
 int level;
 int numTomatoes;
@@ -84,7 +84,8 @@ void initGrid()
     while (numTomatoes == 0)
         initGrid();
 
-    grid[playerPosition.x][playerPosition.y] = 'P';
+
+    //grid[playerPosition.x][playerPosition.y] = 'P';
     for (int i = GRIDSIZE-1; i >=0; i--) {
         for (int j = 0; j < GRIDSIZE; j++){
 		printf("%c",grid[j][i]);
@@ -98,27 +99,28 @@ void initGrid()
 void *thread(void *vargp){
 	pool* conn = (pool*) vargp;
 	//free(vargp);
-	//pthread_detach(pthread_self());
-	int x = malloc(sizeof(int));
-	x = rand() % GRIDSIZE;
-	int y =  malloc(sizeof(int));
-	y = rand() % GRIDSIZE;
-	playerPosition.x = x;
-	playerPosition.y = y;
+	pthread_detach(pthread_self());
+	Position newPos = malloc(sizeof(struct Position));
+	
+	int x = rand() % GRIDSIZE;
+	int y = rand() % GRIDSIZE;
+	newPos.x = x;
+	newPos.y = y;
 	///grid[playerPosition.x][playerPosition.y] = 'P';
 	//initGrid();
 	while(1){ 
 		//do whatever for client, so sending recieve and what not
-		check_clients(conn); //line:conc:echoservers:checkclients
+		check_clients(conn, newPos); //line:conc:echoservers:checkclients
 	}
 	free(vargp);
+	//free(newPos);
 }
 
 int main(int argc, char **argv)
 {
-    int listenfd, connfd, port, *connfdp; 
-    socklen_t clientlen = sizeof(struct sockaddr_in);
-    struct sockaddr_in clientaddr;
+   int listenfd, connfd, port, *connfdp; 
+   socklen_t clientlen = sizeof(struct sockaddr_in);
+   struct sockaddr_in clientaddr;
    static pool pool;
 
     if (argc != 2) {
@@ -133,7 +135,8 @@ int main(int argc, char **argv)
     listenfd = Open_listenfd(port);
     init_pool(listenfd, &pool); //line:conc:echoservers:initpool
     pthread_t tid; 
-    for(int i = 0; i < 5; i++){
+    //int i = 0;
+    //for(int i = 0; i < 5; i++){
     	 //Pthread_create(&tid, NULL, thread, i);
 	    while (1) {
 			/* Wait for listening/connected descriptor(s) to become ready */
@@ -144,16 +147,17 @@ int main(int argc, char **argv)
 			if (FD_ISSET(listenfd, &pool.ready_set)) { //line:conc:echoservers:listenfdready
 				connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:conc:echoservers:accept
 				connfdp = Malloc(sizeof(int));
+				printf("new client with fd is %d", connfd);
 				*connfdp = connfd;
 				add_client(connfd, &pool); //line:conc:echoservers:addclient
-				Pthread_create(&tid, NULL, thread, &pool);
+				pthread_create(&tid, NULL, thread, &pool);
 			}
 			
 			/* Echo a text line from each ready connected descriptor */ 
 			//check_clients(&pool); //line:conc:echoservers:checkclients
 	    }
-    }
-     pthread_exit(NULL); //close thread here 
+   // }
+     //pthread_exit(NULL); //close thread here 
      exit(0);
 }
 /* $end echoserversmain */
@@ -201,7 +205,7 @@ void add_client(int connfd, pool *p)
 /* $end add_client */
 
 /* $begin check_clients */
-void check_clients(pool *p) 
+void check_clients(pool *p, Position newPos) 
 {
     int i, connfd, n;
     char buf[MAXLINE]; 
@@ -220,11 +224,11 @@ void check_clients(pool *p)
 				   n, byte_cnt, connfd);
 
 			Rio_writen(connfd, buf, n); //line:conc:echoservers:endecho
-			checkMovement(buf[0]);
+			checkMovement(buf[0], newPos);
 			printf("score is : %d\n",score);
 			for (int i = GRIDSIZE-1; i >=0; i--) {
 				for (int j = 0; j < GRIDSIZE; j++){
-			        	printf("%c",grid[j][i]);
+					printf("%c",grid[j][i]);
 					}
 				printf("\n");
 				}
@@ -240,7 +244,7 @@ void check_clients(pool *p)
 }
 /* $end check_clients */
 
-void moveTo(int x, int y)
+void moveTo(int x, int y, Position playerPosition)
 {
 	printf("i tried to move\n");
     // Prevent falling off the grid
@@ -272,7 +276,7 @@ grid[playerPosition.x][playerPosition.y]='P';
 
 }
 
-void checkMovement(char move){
+void checkMovement(char move, Position playerPosition){
 	if(move=='w'){
 		moveTo(playerPosition.x,playerPosition.y+1);
 		printf("I moved up");
