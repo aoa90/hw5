@@ -96,13 +96,22 @@ void initGrid()
 ///pool pool;//made global so thread can access
 //static pool pool;
 void *thread(void *vargp){
-	pool* conn = (pool *)vargp;
+	pool* conn = (pool*) vargp;
+	//free(vargp);
 	//pthread_detach(pthread_self());
-	initGrid();
+	int x = malloc(sizeof(int));
+	x = rand() % GRIDSIZE;
+	int y =  malloc(sizeof(int));
+	y = rand() % GRIDSIZE;
+	playerPosition.x = x;
+	playerPosition.y = y;
+	///grid[playerPosition.x][playerPosition.y] = 'P';
+	//initGrid();
 	while(1){ 
 		//do whatever for client, so sending recieve and what not
 		check_clients(conn); //line:conc:echoservers:checkclients
 	}
+	free(vargp);
 }
 
 int main(int argc, char **argv)
@@ -118,7 +127,7 @@ int main(int argc, char **argv)
     }
     port = atoi(argv[1]);
     //grid[playerPosition.x][playerPosition.y] == 'P';
-    //initGrid();
+    initGrid();
     //Sem_init(&mutex, 0, 1);//
 
     listenfd = Open_listenfd(port);
@@ -127,25 +136,25 @@ int main(int argc, char **argv)
     for(int i = 0; i < 5; i++){
     	 //Pthread_create(&tid, NULL, thread, i);
 	    while (1) {
-		/* Wait for listening/connected descriptor(s) to become ready */
-		pool.ready_set = pool.read_set;
-		pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, NULL);
+			/* Wait for listening/connected descriptor(s) to become ready */
+			pool.ready_set = pool.read_set;
+			pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, NULL);
 
-		/* If listening descriptor ready, add new client to pool */
-		if (FD_ISSET(listenfd, &pool.ready_set)) { //line:conc:echoservers:listenfdready
-		    connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:conc:echoservers:accept
-		    connfdp = Malloc(sizeof(int));
-		    *connfdp = connfd;
-		    add_client(connfd, &pool); //line:conc:echoservers:addclient
-		    Pthread_create(&tid, NULL, thread, &pool);
-		}
-		
-		
-		/* Echo a text line from each ready connected descriptor */ 
-		//check_clients(&pool); //line:conc:echoservers:checkclients
+			/* If listening descriptor ready, add new client to pool */
+			if (FD_ISSET(listenfd, &pool.ready_set)) { //line:conc:echoservers:listenfdready
+				connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); //line:conc:echoservers:accept
+				connfdp = Malloc(sizeof(int));
+				*connfdp = connfd;
+				add_client(connfd, &pool); //line:conc:echoservers:addclient
+				Pthread_create(&tid, NULL, thread, &pool);
+			}
+			
+			/* Echo a text line from each ready connected descriptor */ 
+			//check_clients(&pool); //line:conc:echoservers:checkclients
 	    }
     }
      pthread_exit(NULL); //close thread here 
+     exit(0);
 }
 /* $end echoserversmain */
 
@@ -202,32 +211,31 @@ void check_clients(pool *p)
 		connfd = p->clientfd[i];
 		rio = p->clientrio[i];
 
-	/* If the descriptor is ready, echo a text line from it */
-	if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set))) { 
-	    p->nready--;
-	    if ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-		byte_cnt += n; //line:conc:echoservers:beginecho
-		printf("Server received %d (%d total) bytes on fd %d\n", 
-		       n, byte_cnt, connfd);
+		/* If the descriptor is ready, echo a text line from it */
+		if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set))) { 
+			p->nready--;
+			if ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
+			byte_cnt += n; //line:conc:echoservers:beginecho
+			printf("Server received %d (%d total) bytes on fd %d\n", 
+				   n, byte_cnt, connfd);
 
-		Rio_writen(connfd, buf, n); //line:conc:echoservers:endecho
-		checkMovement(buf[0]);
-		printf("score is : %d\n",score);
-	for (int i = GRIDSIZE-1; i >=0; i--) {
-        	for (int j = 0; j < GRIDSIZE; j++){
-                	printf("%c",grid[j][i]);
-        	}
-		printf("\n");
-	}
-	    }
-
-	    /* EOF detected, remove descriptor from pool */
-	    else { 
-		Close(connfd); //line:conc:echoservers:closeconnfd
-		FD_CLR(connfd, &p->read_set); //line:conc:echoservers:beginremove
-		p->clientfd[i] = -1;          //line:conc:echoservers:endremove
-	    }
-	}
+			Rio_writen(connfd, buf, n); //line:conc:echoservers:endecho
+			checkMovement(buf[0]);
+			printf("score is : %d\n",score);
+			for (int i = GRIDSIZE-1; i >=0; i--) {
+				for (int j = 0; j < GRIDSIZE; j++){
+			        	printf("%c",grid[j][i]);
+					}
+				printf("\n");
+				}
+			}
+			/* EOF detected, remove descriptor from pool */
+			else { 
+				Close(connfd); //line:conc:echoservers:closeconnfd
+				FD_CLR(connfd, &p->read_set); //line:conc:echoservers:beginremove
+				p->clientfd[i] = -1;          //line:conc:echoservers:endremove
+			}
+		}
     }
 }
 /* $end check_clients */
@@ -263,6 +271,7 @@ void moveTo(int x, int y)
 grid[playerPosition.x][playerPosition.y]='P';
 
 }
+
 void checkMovement(char move){
 	if(move=='w'){
 		moveTo(playerPosition.x,playerPosition.y+1);
